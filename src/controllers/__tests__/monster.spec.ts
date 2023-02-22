@@ -1,6 +1,6 @@
-import app from '../../app';
-import request from 'supertest';
 import { StatusCodes } from 'http-status-codes';
+import request from 'supertest';
+import app from '../../app';
 
 import factories from '../../factories';
 import { Monster } from '../../models';
@@ -31,6 +31,7 @@ describe('MonsterController', () => {
       const { id } = await Monster.query().insert(monster);
 
       const response = await request(server).get(`/monsters/${id}`);
+      
       expect(response.status).toBe(StatusCodes.OK);
       expect(response.body.id).toBe(id);
     });
@@ -91,16 +92,33 @@ describe('MonsterController', () => {
   });
 
   describe('Import CSV', () => {
-    test('should fail when importing csv file with an empty monster', () => {
+    test('should fail when importing csv file with an empty monster', async() => {
       // @TODO
+      const response = await request(server).post('/monsters/import')
+        .set('Content-type', 'multipart/form-data')
+        .attach('monsters', './src/controllers/__tests__/data/monsters-empty-monster.csv');       
+        
+        expect(response.status).toBe(StatusCodes.BAD_REQUEST);
+        expect(response.body.message).toBe('Wrong data mapping.');
+      });
+      
+      test('should fail when importing csv file with wrong or inexistent columns.', async() => {
+        // @TODO
+        const response = await request(server).post('/monsters/import')
+        .set('Content-type', 'multipart/form-data')
+        .attach('monsters', './src/controllers/__tests__/data/monsters-wrong-column.csv');       
+        
+        expect(response.status).toBe(StatusCodes.BAD_REQUEST);
+        expect(response.body.message).toBe('Wrong data mapping.');
     });
 
-    test('should fail when importing csv file with wrong or inexistent columns.', () => {
+    test('should import all the CSV objects into the database successfully', async() => {     
       // @TODO
-    });
-
-    test('should import all the CSV objects into the database successfully', () => {
-      // @TODO
+      const response = await request(server).post('/monsters/import')
+        .set('Content-type', 'multipart/form-data')
+        .attach('monsters', './src/controllers/__tests__/data/monsters-correct.csv');       
+        
+        expect(response.status).toBe(StatusCodes.CREATED);
     });
   });
 });
