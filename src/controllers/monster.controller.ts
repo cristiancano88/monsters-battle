@@ -1,14 +1,27 @@
+import csv from 'csvtojson';
 import { Request, Response } from 'express';
+import { readFileSync } from 'fs';
 import { StatusCodes } from 'http-status-codes';
 import { DBError, Id, NotNullViolationError } from 'objection';
 import { Monster } from '../models';
-import csv from 'csvtojson';
-import { readFileSync } from 'fs';
+
+export const list = async (req: Request, res: Response): Promise<Response> => {
+  const monsters = await Monster.query();      
+  return res.status(StatusCodes.OK).json(monsters);          
+};
 
 export const get = async (req: Request, res: Response): Promise<Response> => {
-  const id: Id = req.params.id;
-  const monster = await Monster.query().findById(id);
-  return res.status(StatusCodes.OK).json(monster);
+  try {    
+    const id: Id = req.params.id;
+    const monster = await Monster.query().findById(id);
+    if(monster){
+      return res.status(StatusCodes.OK).json(monster);
+    } else {      
+      return res.sendStatus(StatusCodes.NOT_FOUND);
+    }    
+  } catch (error) {
+    return res.json(error)
+  }
 };
 
 export const create = async (
@@ -24,8 +37,12 @@ export const update = async (
   res: Response
 ): Promise<Response> => {
   const id: Id = req.params.id;
-  await Monster.query().findById(id).patch(req.body);
-  return res.sendStatus(StatusCodes.OK);
+  const monster = await Monster.query().findById(id).patch(req.body);
+  if(monster) {
+    return res.sendStatus(StatusCodes.OK);
+  } else {
+    return res.sendStatus(StatusCodes.NOT_FOUND);
+  }
 };
 
 export const remove = async (
@@ -33,8 +50,12 @@ export const remove = async (
   res: Response
 ): Promise<Response> => {
   const id: Id = req.params.id;
-  await Monster.query().deleteById(id);
-  return res.sendStatus(StatusCodes.NO_CONTENT);
+  const monster = await Monster.query().deleteById(id);
+  if(monster) {
+    return res.sendStatus(StatusCodes.NO_CONTENT);
+  } else {
+    return res.sendStatus(StatusCodes.NOT_FOUND);
+  }
 };
 
 export const importCsv = async (
@@ -55,6 +76,7 @@ export const importCsv = async (
 };
 
 export const MonsterController = {
+  list,
   get,
   create,
   update,
